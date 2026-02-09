@@ -64,34 +64,54 @@ def detect_experience_level(text: str) -> str:
     return "mid"
 
 
+_kw_model = None
+
+
+def _get_keybert():
+    global _kw_model
+    if _kw_model is None:
+        try:
+            from keybert import KeyBERT
+            _kw_model = KeyBERT(model="all-MiniLM-L6-v2")
+        except Exception:
+            _kw_model = None
+    return _kw_model
+
+
+def _fallback_extract_keywords(text: str) -> list[KeywordWithWeight]:
+    """Regex-based keyword extraction fallback."""
+    words = re.findall(r"\b[A-Z][a-zA-Z.+#]+(?:[\s.-]+[A-Z]?[a-zA-Z.+#]+)*\b", text)
+    word_freq: dict[str, int] = {}
+    for w in words:
+        if len(w) > 2:
+            word_freq[w] = word_freq.get(w, 0) + 1
+    sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:30]
+    max_count = sorted_words[0][1] if sorted_words else 1
+    return [
+        KeywordWithWeight(keyword=w, weight=round(c / max_count, 3), category="preferred")
+        for w, c in sorted_words
+    ]
+
+
 def extract_keywords_from_jd(text: str) -> list[KeywordWithWeight]:
-    try:
-        from keybert import KeyBERT
-        kw_model = KeyBERT(model="all-MiniLM-L6-v2")
-        keywords = kw_model.extract_keywords(
-            text,
-            keyphrase_ngram_range=(1, 3),
-            stop_words="english",
-            top_n=30,
-            use_maxsum=True,
-            nr_candidates=50,
-        )
-        return [
-            KeywordWithWeight(keyword=kw, weight=round(score, 3), category="preferred")
-            for kw, score in keywords
-        ]
-    except Exception:
-        words = re.findall(r"\b[A-Z][a-zA-Z.+#]+(?:\s+[A-Z][a-zA-Z.+#]+)*\b", text)
-        word_freq: dict[str, int] = {}
-        for w in words:
-            w_lower = w.lower()
-            if len(w_lower) > 2:
-                word_freq[w] = word_freq.get(w, 0) + 1
-        sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:30]
-        return [
-            KeywordWithWeight(keyword=w, weight=round(c / max(1, sorted_words[0][1]), 3), category="preferred")
-            for w, c in sorted_words
-        ]
+    kw_model = _get_keybert()
+    if kw_model is not None:
+        try:
+            keywords = kw_model.extract_keywords(
+                text,
+                keyphrase_ngram_range=(1, 2),
+                stop_words="english",
+                top_n=30,
+                use_mmr=True,
+                diversity=0.5,
+            )
+            return [
+                KeywordWithWeight(keyword=kw, weight=round(score, 3), category="preferred")
+                for kw, score in keywords
+            ]
+        except Exception:
+            pass
+    return _fallback_extract_keywords(text)
 
 
 def classify_keywords(
