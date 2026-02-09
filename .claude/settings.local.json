@@ -9,7 +9,8 @@
       "Bash(venv/Scripts/uvicorn:*)",
       "Bash(curl:*)",
       "Bash(python -c:*)",
-      "Bash(python -m json.tool:*)"
+      "Bash(python -m json.tool:*)",
+      "Bash(python:*)"
     ]
   }
 }
