@@ -5,7 +5,7 @@ from app.routers import analyze, optimize, parse, history
 from app.models.database import init_db
 
 app = FastAPI(
-    title="ResumeRadar API",
+    title="ATS Score API",
     description="AI-Powered ATS Score Analyzer",
     version="1.0.0",
 )
@@ -33,4 +33,4 @@ async def startup():
 
 @app.get("/api/v1/health")
 async def health_check():
-    return {"status": "healthy", "service": "ResumeRadar API"}
+    return {"status": "healthy", "service": "ATS Score API"}

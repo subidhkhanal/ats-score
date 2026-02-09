@@ -78,7 +78,7 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">
-                  ResumeRadar
+                  ATS Score
                 </h1>
                 <p className="text-xs text-muted-foreground">
                   AI-Powered ATS Score Analyzer
@@ -385,7 +385,7 @@ export default function Home() {
       <footer className="border-t border-border mt-16 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-xs text-muted-foreground">
-            ResumeRadar — AI-Powered ATS Score Analyzer
+            ATS Score — AI-Powered ATS Score Analyzer
           </p>
         </div>
       </footer>

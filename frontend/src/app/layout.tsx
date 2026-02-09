@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ResumeRadar - AI-Powered ATS Score Analyzer",
+  title: "ATS Score - AI-Powered ATS Score Analyzer",
   description:
     "Analyze your resume against job descriptions with AI-powered ATS scoring",
 };

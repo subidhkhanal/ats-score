@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+models/
+.env
+.git/
+tests/
+test_quick.py
+*.db
