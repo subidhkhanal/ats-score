@@ -1,7 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from typing import Optional
+from fastapi import APIRouter, Form
 
-from app.models.schemas import OptimizeResponse
+from app.models.schemas import OptimizeResponse, ATSAnalysisResponse
 from app.services.resume_parser import parse_resume, is_latex
 from app.services.jd_parser import parse_jd
 from app.services.keyword_matcher import compute_keyword_score
@@ -11,7 +10,6 @@ from app.services.score_aggregator import compute_overall_score, get_recruiter_s
 from app.services.suggestion_engine import generate_suggestions
 from app.services.llm_analyzer import analyze_with_llm
 from app.services.resume_optimizer import optimize_resume
-from app.models.schemas import ATSAnalysisResponse
 from datetime import datetime
 import uuid
 
@@ -20,42 +18,13 @@ router = APIRouter()
 
 @router.post("/optimize", response_model=OptimizeResponse)
 async def optimize_resume_endpoint(
-    resume_file: Optional[UploadFile] = File(None),
-    resume_text: Optional[str] = Form(None),
+    resume_text: str = Form(""),
     jd_text: str = Form(...),
 ):
-    # Extract resume text
-    file_bytes = None
-    input_format = "txt"
-    raw_latex = None
-
-    if resume_file:
-        file_bytes = await resume_file.read()
-        filename = resume_file.filename or ""
-        if filename.endswith(".pdf"):
-            input_format = "pdf"
-        elif filename.endswith(".docx"):
-            input_format = "docx"
-        elif filename.endswith(".tex"):
-            input_format = "txt"
-            resume_text = file_bytes.decode("utf-8", errors="ignore")
-            file_bytes = None
-        else:
-            resume_text = file_bytes.decode("utf-8", errors="ignore")
-            file_bytes = None
-
-    if not resume_text and not file_bytes:
-        resume_text = ""
-
-    if resume_text and is_latex(resume_text):
-        raw_latex = resume_text
+    raw_latex = resume_text if is_latex(resume_text) else None
 
     # Run full analysis first
-    parsed_resume = parse_resume(
-        text=resume_text or "",
-        input_format=input_format,
-        file_bytes=file_bytes,
-    )
+    parsed_resume = parse_resume(text=resume_text)
     parsed_jd = parse_jd(jd_text)
 
     keyword_score, keyword_results = compute_keyword_score(parsed_resume, parsed_jd)

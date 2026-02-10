@@ -1,6 +1,4 @@
 import re
-import io
-from pathlib import Path
 from app.models.schemas import (
     ParsedResume, ContactInfo, ExperienceEntry,
     EducationEntry, ProjectEntry,
@@ -14,22 +12,6 @@ from app.utils.constants import SECTION_HEADERS
 
 def is_latex(text: str) -> bool:
     return "\\documentclass" in text or "\\begin{document}" in text
-
-
-def extract_text_from_pdf(file_bytes: bytes) -> str:
-    import fitz
-    doc = fitz.open(stream=file_bytes, filetype="pdf")
-    text = ""
-    for page in doc:
-        text += page.get_text() + "\n"
-    doc.close()
-    return text.strip()
-
-
-def extract_text_from_docx(file_bytes: bytes) -> str:
-    from docx import Document
-    doc = Document(io.BytesIO(file_bytes))
-    return "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
 
 
 def latex_to_plain(latex: str) -> str:
@@ -254,13 +236,10 @@ def extract_education(sections: dict[str, str]) -> list[EducationEntry]:
     return education
 
 
-def parse_resume(text: str, input_format: str = "txt", file_bytes: bytes | None = None) -> ParsedResume:
+def parse_resume(text: str) -> ParsedResume:
     raw_latex = None
-    if file_bytes and input_format == "pdf":
-        text = extract_text_from_pdf(file_bytes)
-    elif file_bytes and input_format == "docx":
-        text = extract_text_from_docx(file_bytes)
-    elif is_latex(text):
+    input_format = "txt"
+    if is_latex(text):
         raw_latex = text
         input_format = "latex"
         text = latex_to_plain(text)

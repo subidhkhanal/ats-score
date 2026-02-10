@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form
-from typing import Optional
+from fastapi import APIRouter, Form
 
 from app.models.schemas import ATSAnalysisResponse
 from app.services.resume_parser import parse_resume
@@ -18,39 +17,12 @@ router = APIRouter()
 
 @router.post("/analyze", response_model=ATSAnalysisResponse)
 async def analyze_resume(
-    resume_file: Optional[UploadFile] = File(None),
-    resume_text: Optional[str] = Form(None),
+    resume_text: str = Form(""),
     jd_text: str = Form(...),
     include_llm_analysis: bool = Form(True),
 ):
-    # Extract resume text
-    file_bytes = None
-    input_format = "txt"
-
-    if resume_file:
-        file_bytes = await resume_file.read()
-        filename = resume_file.filename or ""
-        if filename.endswith(".pdf"):
-            input_format = "pdf"
-        elif filename.endswith(".docx"):
-            input_format = "docx"
-        elif filename.endswith(".tex"):
-            input_format = "txt"
-            resume_text = file_bytes.decode("utf-8", errors="ignore")
-            file_bytes = None
-        else:
-            resume_text = file_bytes.decode("utf-8", errors="ignore")
-            file_bytes = None
-
-    if not resume_text and not file_bytes:
-        resume_text = ""
-
     # Parse resume and JD
-    parsed_resume = parse_resume(
-        text=resume_text or "",
-        input_format=input_format,
-        file_bytes=file_bytes,
-    )
+    parsed_resume = parse_resume(text=resume_text)
     parsed_jd = parse_jd(jd_text)
 
     # Layer 1: Keyword matching

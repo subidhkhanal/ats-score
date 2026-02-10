@@ -82,7 +82,7 @@ async def analyze_with_llm(
         import google.generativeai as genai
 
         genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
         prompt = ANALYSIS_PROMPT.format(
             resume_text=resume_text[:4000],

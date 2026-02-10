@@ -389,7 +389,7 @@ async def _call_optimization_llm(
     try:
         import google.generativeai as genai
         genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
         if is_latex and raw_latex:
             latex_map = parse_latex_resume(raw_latex)
