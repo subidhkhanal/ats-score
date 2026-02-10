@@ -43,14 +43,3 @@ export async function optimizeResume(
 
   return response.json();
 }
-
-export async function getHistory(): Promise<Array<Record<string, unknown>>> {
-  const response = await fetch(`${API_URL}/api/v1/history`);
-  if (!response.ok) throw new Error("Failed to fetch history");
-  return response.json();
-}
-
-export async function healthCheck(): Promise<{ status: string }> {
-  const response = await fetch(`${API_URL}/api/v1/health`);
-  return response.json();
-}
