@@ -25,7 +25,6 @@ type TabId =
 export default function Home() {
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
-  const [resumeFile, setResumeFile] = useState<File | undefined>();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   const {
@@ -39,19 +38,19 @@ export default function Home() {
   } = useAnalysis();
 
   const handleAnalyze = async () => {
-    if (!resumeText && !resumeFile) {
-      alert("Please provide a resume");
+    if (!resumeText.trim()) {
+      alert("Please paste your LaTeX resume");
       return;
     }
     if (!jdText.trim()) {
       alert("Please provide a job description");
       return;
     }
-    await analyze(resumeText, jdText, resumeFile);
+    await analyze(resumeText, jdText);
   };
 
   const handleOptimize = async () => {
-    await optimize(resumeText, jdText, resumeFile);
+    await optimize(resumeText, jdText);
   };
 
   const tabs: { id: TabId; label: string }[] = [
@@ -119,8 +118,6 @@ export default function Home() {
                 <ResumeUpload
                   resumeText={resumeText}
                   onResumeTextChange={setResumeText}
-                  onFileChange={setResumeFile}
-                  file={resumeFile}
                 />
               </div>
               <div className="rounded-xl border border-border bg-card p-6">
@@ -131,7 +128,7 @@ export default function Home() {
             <div className="flex justify-center">
               <button
                 onClick={handleAnalyze}
-                disabled={loading || (!resumeText && !resumeFile) || !jdText.trim()}
+                disabled={loading || !resumeText.trim() || !jdText.trim()}
                 className="px-8 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? (

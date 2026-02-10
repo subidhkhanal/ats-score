@@ -5,18 +5,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export async function analyzeResume(
   resumeText: string,
   jdText: string,
-  resumeFile?: File,
   includeLlm: boolean = true
 ): Promise<ATSAnalysisResponse> {
   const formData = new FormData();
+  formData.append("resume_text", resumeText);
   formData.append("jd_text", jdText);
   formData.append("include_llm_analysis", String(includeLlm));
-
-  if (resumeFile) {
-    formData.append("resume_file", resumeFile);
-  } else {
-    formData.append("resume_text", resumeText);
-  }
 
   const response = await fetch(`${API_URL}/api/v1/analyze`, {
     method: "POST",
@@ -32,17 +26,11 @@ export async function analyzeResume(
 
 export async function optimizeResume(
   resumeText: string,
-  jdText: string,
-  resumeFile?: File
+  jdText: string
 ): Promise<OptimizeResponse> {
   const formData = new FormData();
+  formData.append("resume_text", resumeText);
   formData.append("jd_text", jdText);
-
-  if (resumeFile) {
-    formData.append("resume_file", resumeFile);
-  } else {
-    formData.append("resume_text", resumeText);
-  }
 
   const response = await fetch(`${API_URL}/api/v1/optimize`, {
     method: "POST",

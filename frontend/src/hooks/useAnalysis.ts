@@ -12,13 +12,13 @@ export function useAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   const analyze = useCallback(
-    async (resumeText: string, jdText: string, resumeFile?: File) => {
+    async (resumeText: string, jdText: string) => {
       setLoading(true);
       setError(null);
       setAnalysis(null);
       setOptimization(null);
       try {
-        const result = await analyzeResume(resumeText, jdText, resumeFile);
+        const result = await analyzeResume(resumeText, jdText);
         setAnalysis(result);
         return result;
       } catch (err) {
@@ -33,11 +33,11 @@ export function useAnalysis() {
   );
 
   const optimize = useCallback(
-    async (resumeText: string, jdText: string, resumeFile?: File) => {
+    async (resumeText: string, jdText: string) => {
       setOptimizing(true);
       setError(null);
       try {
-        const result = await optimizeResume(resumeText, jdText, resumeFile);
+        const result = await optimizeResume(resumeText, jdText);
         setOptimization(result);
         return result;
       } catch (err) {
