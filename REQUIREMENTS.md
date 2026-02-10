@@ -19,16 +19,12 @@ This is a **full-stack web application** with a Next.js frontend and FastAPI bac
 - **Tailwind CSS** for styling
 - **shadcn/ui** for UI components
 - **Recharts** for data visualizations (score gauges, radar charts)
-- **react-dropzone** for file upload
-- **PDF.js** (`pdfjs-dist`) for client-side PDF text extraction
 
 ### Backend
 - **Python 3.11+**
 - **FastAPI** with async endpoints
 - **Pydantic v2** for request/response validation and structured output schemas
-- **python-multipart** for file uploads
-- **PyMuPDF (fitz)** for server-side PDF text extraction
-- **python-docx** for DOCX parsing
+- **python-multipart** for form data handling
 - **spaCy** (en_core_web_sm or en_core_web_md) for NLP entity extraction, POS tagging
 - **KeyBERT** for keyword extraction from JD and resume
 - **RapidFuzz** for fuzzy keyword matching
@@ -50,8 +46,8 @@ This is a **full-stack web application** with a Next.js frontend and FastAPI bac
 ┌─────────────────────────────────────────────────────┐
 │                   Next.js Frontend                   │
 │  ┌───────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │  Upload    │  │  Score   │  │  Recruiter       │  │
-│  │  Resume +  │  │  Dashboard│  │  Simulation View │  │
+│  │  Paste     │  │  Score   │  │  Recruiter       │  │
+│  │  LaTeX +   │  │  Dashboard│  │  Simulation View │  │
 │  │  Paste JD  │  │  + Charts│  │  (Greenhouse UI) │  │
 │  └─────┬─────┘  └────┬─────┘  └────────┬─────────┘  │
 │        │              │                  │            │
@@ -64,12 +60,12 @@ This is a **full-stack web application** with a Next.js frontend and FastAPI bac
 │                       │                               │
 │  ┌────────────────────▼────────────────────────┐      │
 │  │           /api/v1/analyze                    │      │
-│  │  Receives resume text/file + JD text         │      │
+│  │  Receives LaTeX resume text + JD text          │      │
 │  └────────────────────┬────────────────────────┘      │
 │                       │                               │
 │  ┌────────────────────▼────────────────────────┐      │
 │  │        Resume & JD Parser Module             │      │
-│  │  - PDF/DOCX text extraction (PyMuPDF)        │      │
+│  │  - LaTeX text extraction                       │      │
 │  │  - Section detection (Education, Skills...)   │      │
 │  │  - Contact info extraction (regex + spaCy)    │      │
 │  │  - spaCy NER for entities                     │      │
@@ -124,13 +120,9 @@ This is a **full-stack web application** with a Next.js frontend and FastAPI bac
 
 ### 1. Resume Input (Frontend)
 
-- **File Upload**: Accept `.pdf`, `.docx`, `.txt`, `.tex` files via drag-and-drop or file picker
-- **Text Paste**: Textarea for pasting resume text directly (plain text OR raw LaTeX)
-- **Auto-detect LaTeX**: If pasted text contains `\documentclass` or `\begin{document}`, auto-flag as LaTeX input and switch to LaTeX-aware mode
-- **PDF Preview**: Show uploaded PDF inline using PDF.js
-- **LaTeX Preview**: Show a "LaTeX detected" badge when LaTeX input is detected so the user knows the optimizer will output valid LaTeX
+- **LaTeX Paste**: Textarea for pasting raw LaTeX resume source code
+- **LaTeX Badge**: Show a "LaTeX Mode" badge so the user knows the optimizer will output valid LaTeX
 - **Character/Word Count**: Show live word count below textarea
-- **Max file size**: 5MB
 
 ### 2. Job Description Input (Frontend)
 
@@ -141,16 +133,16 @@ This is a **full-stack web application** with a Next.js frontend and FastAPI bac
 
 ### 3. Resume Parser (Backend)
 
-The parser extracts structured data from the resume. It must handle **two modes**: plain text/PDF input AND raw LaTeX input.
+The parser extracts structured data from the resume. It handles **LaTeX input** exclusively.
 
 ```python
 class ParsedResume(BaseModel):
     raw_text: str                          # plain text extracted from any format
     raw_latex: str | None                  # original LaTeX source (None if input wasn't LaTeX)
-    input_format: str                      # "latex" | "pdf" | "docx" | "txt"
+    input_format: str                      # "latex"
     contact: ContactInfo                   # name, email, phone, linkedin, github, location
     sections: dict[str, str]               # detected sections and their plain text content
-    latex_sections: dict[str, str] | None  # sections with LaTeX markup preserved (None if not LaTeX)
+    latex_sections: dict[str, str] | None  # sections with LaTeX markup preserved
     skills: list[str]                      # extracted skills
     experience: list[ExperienceEntry]      # company, role, dates, bullets
     education: list[EducationEntry]        # school, degree, dates
@@ -161,7 +153,6 @@ class ParsedResume(BaseModel):
 ```
 
 **Implementation**:
-- Use **PyMuPDF** for PDF text extraction (handles multi-column, headers/footers)
 - Use **spaCy** NER to extract names, organizations, dates, locations
 - Use **regex patterns** for email, phone, LinkedIn, GitHub URLs
 - Use **heuristic section detection**: scan for common section headers ("EXPERIENCE", "EDUCATION", "SKILLS", "PROJECTS", "ABOUT", "SUMMARY", "CERTIFICATIONS") with fuzzy matching
@@ -434,7 +425,7 @@ class StructureResult(BaseModel):
 
 ### 6. LLM Analysis Module (Backend)
 
-Use **Google Gemini API** (free tier: `gemini-2.0-flash`) for qualitative analysis.
+Use **Google Gemini API** (free tier: `gemini-2.5-flash`) for qualitative analysis.
 
 **API Call Structure**:
 ```python
@@ -571,16 +562,15 @@ Simulate what a recruiter sees in Greenhouse/Lever:
 - **"Optimize My Resume" button**: One-click triggers the optimization pipeline
 - **Before/After split view**: Original resume on the left, optimized on the right
 - **Diff highlighting**: Green highlights for added keywords, yellow for reworded bullets
-- **LaTeX diff view**: When input is LaTeX, show syntax-highlighted LaTeX diff (use a simple code diff — green for additions, red for removals)
+- **LaTeX diff view**: Show syntax-highlighted LaTeX diff (green for additions, red for removals)
 - **Score comparison bar**: Original score → Optimized score side-by-side with animated transition
 - **Section-by-section review**: User can accept/reject each change individually (checkboxes)
 - **"Apply Selected Changes" button**: Merges only accepted changes into final version
 - **Download options**:
-  - If LaTeX input: Download complete `.tex` file (ready to compile with pdflatex/xelatex)
-  - If LaTeX input: "Copy LaTeX" button to copy the full optimized `.tex` to clipboard
-  - For all inputs: Download as `.txt` or `.md` (formatted plain text)
+  - Download complete `.tex` file (ready to compile with pdflatex/xelatex)
+  - "Copy LaTeX" button to copy the full optimized `.tex` to clipboard
 - **Truthfulness guard**: Banner stating "Only your existing skills and experience are used — nothing fabricated"
-- **LaTeX badge**: When LaTeX is detected, show "🔧 LaTeX Mode — output is a compilable .tex file"
+- **LaTeX badge**: Show "LaTeX Mode — output is a compilable .tex file"
 
 ### 9. Auto-Optimize Resume (Backend)
 
@@ -597,7 +587,7 @@ This feature takes the analysis results and automatically rewrites the resume to
 │  ├── Identify missing keywords                            │
 │  ├── Identify weak semantic sections                      │
 │  ├── Get structure gaps                                   │
-│  └── Detect input format (LaTeX vs plain text)            │
+│  └── Map LaTeX structure for targeted editing              │
 │                                                           │
 │  Step 2: PLAN CHANGES                                     │
 │  ├── Map missing keywords → existing experience           │
@@ -605,11 +595,10 @@ This feature takes the analysis results and automatically rewrites the resume to
 │  ├── Identify bullets that can be keyword-enriched        │
 │  ├── Plan skills section rewrite                          │
 │  ├── Plan summary/about section rewrite                   │
-│  └── If LaTeX: map each change to exact line numbers      │
+│  └── Map each change to exact line numbers in .tex        │
 │                                                           │
 │  Step 3: REWRITE (LLM — Gemini)                           │
-│  ├── If LaTeX: rewrite individual LaTeX blocks in-place   │
-│  ├── If plain text: rewrite full sections                 │
+│  ├── Rewrite individual LaTeX blocks in-place             │
 │  ├── Rewrite skills section to match JD ordering          │
 │  ├── Rewrite summary to align with JD                     │
 │  └── Constraint: ONLY use skills/tech already in resume   │
@@ -618,22 +607,22 @@ This feature takes the analysis results and automatically rewrites the resume to
 │  ├── Re-run 3-layer scoring on optimized version          │
 │  ├── Verify no new skills were fabricated                 │
 │  │   (diff original skills set vs optimized skills set)   │
-│  ├── If LaTeX: verify output compiles (syntax check)      │
+│  ├── Verify LaTeX output compiles (syntax check)          │
 │  ├── Compute score delta                                  │
 │  └── If score didn't improve, retry with different prompt │
 │                                                           │
 │  Step 5: RETURN                                           │
-│  ├── Original vs Optimized (LaTeX or plain text)          │
+│  ├── Original vs Optimized LaTeX                          │
 │  ├── List of all changes with reasons                     │
 │  ├── Original score vs New score                          │
 │  ├── Per-change accept/reject metadata                    │
-│  └── If LaTeX: complete compilable .tex file              │
+│  └── Complete compilable .tex file                        │
 └──────────────────────────────────────────────────────────┘
 ```
 
-#### 9.1.1 LaTeX-Specific Optimization Strategy
+#### 9.1.1 LaTeX Optimization Strategy
 
-When the input is LaTeX, the optimizer does NOT convert to plain text and back. Instead, it performs **surgical edits directly on the LaTeX source**, preserving all formatting, custom commands, packages, and structure.
+The optimizer performs **surgical edits directly on the LaTeX source**, preserving all formatting, custom commands, packages, and structure. It does NOT convert to plain text and back.
 
 **Key Principle**: The optimizer only touches content inside `\resumeItem{}`, `\textbf{} {:}` (skills), and `\section{ABOUT}` blocks. It never modifies the preamble, custom commands, margins, fonts, or document structure.
 
@@ -748,66 +737,7 @@ These rules are **non-negotiable** and must be enforced both in the LLM prompt a
 
 #### 9.3 LLM Prompt for Optimization
 
-Two prompt variants are used depending on input format:
-
-**Prompt A — Plain Text Input**:
-```python
-OPTIMIZE_PROMPT_PLAIN = """
-You are an expert resume optimizer. Your job is to rewrite resume content to maximize ATS keyword matching against a specific job description, while keeping everything 100% truthful.
-
-ORIGINAL RESUME:
-{resume_text}
-
-JOB DESCRIPTION:
-{jd_text}
-
-ANALYSIS RESULTS:
-- Missing required keywords: {missing_required}
-- Missing preferred keywords: {missing_preferred}
-- Weak sections (low semantic similarity): {weak_sections}
-- Current ATS score: {current_score}%
-
-SKILLS ALREADY IN RESUME (extracted):
-{existing_skills}
-
-RULES — YOU MUST FOLLOW THESE:
-1. ONLY use technologies/skills that are already present in the resume or are directly implied (e.g., Next.js implies React.js, FastAPI implies Python)
-2. Do NOT add any skill or technology the candidate hasn't demonstrated
-3. Preserve the factual content of every bullet point — only change phrasing
-4. Do NOT inflate any metrics, numbers, or achievements  
-5. Keep language natural and professional — no keyword stuffing
-6. Prioritize adding missing REQUIRED keywords over preferred ones
-7. Focus changes on: Skills section, Summary/About section, and Experience bullet points
-
-RESPOND AS JSON:
-{{
-  "optimized_summary": "rewritten summary/about section aligned to JD",
-  "optimized_skills": "rewritten skills section with JD-relevant ordering and grouping",
-  "bullet_changes": [
-    {{
-      "section": "experience" | "projects",
-      "entry_index": 0,
-      "bullet_index": 0,
-      "original": "original bullet text",
-      "optimized": "rewritten bullet with keywords naturally integrated",
-      "keywords_added": ["keyword1", "keyword2"],
-      "reason": "why this change improves ATS matching"
-    }}
-  ],
-  "keywords_successfully_added": ["list of missing keywords now present"],
-  "keywords_impossible_to_add": [
-    {{
-      "keyword": "keyword that couldn't be added",
-      "reason": "why — e.g., candidate has no related experience"
-    }}
-  ],
-  "estimated_new_score": 82,
-  "optimization_notes": "brief summary of what was changed and why"
-}}
-"""
-```
-
-**Prompt B — LaTeX Input** (used when `input_format == "latex"`):
+**LLM Prompt for LaTeX Optimization**:
 ```python
 OPTIMIZE_PROMPT_LATEX = """
 You are an expert resume optimizer that edits LaTeX source code directly.
@@ -975,13 +905,13 @@ IMPLICATION_MAP = {
 ```python
 class OptimizeResponse(BaseModel):
     # Input format
-    input_format: str  # "latex" | "plain"
+    input_format: str  # "latex"
     
     # Original vs Optimized
     original_text: str              # plain text version
     optimized_text: str             # plain text version (for display/scoring)
-    original_latex: str | None      # original .tex source (None if not LaTeX input)
-    optimized_latex: str | None     # complete optimized .tex file ready to compile (None if not LaTeX)
+    original_latex: str | None      # original .tex source
+    optimized_latex: str | None     # complete optimized .tex file ready to compile
     
     # Score Comparison
     original_score: int
@@ -1060,11 +990,10 @@ GET    /api/v1/health                # Health check
 
 ```
 POST /api/v1/analyze
-Content-Type: multipart/form-data
+Content-Type: application/x-www-form-urlencoded
 
 Fields:
-- resume_file: File (optional, .pdf/.docx/.txt)
-- resume_text: string (optional, fallback if no file)
+- resume_text: string (required, LaTeX source)
 - jd_text: string (required)
 - include_llm_analysis: boolean (default: true)
 
@@ -1075,11 +1004,10 @@ Response: ATSAnalysisResponse (JSON)
 
 ```
 POST /api/v1/optimize
-Content-Type: multipart/form-data
+Content-Type: application/x-www-form-urlencoded
 
 Fields:
-- resume_file: File (optional, .pdf/.docx/.txt)
-- resume_text: string (optional, fallback if no file)
+- resume_text: string (required, LaTeX source)
 - jd_text: string (required)
 - analysis_id: string (optional — reuse existing analysis to skip re-scoring)
 
@@ -1106,7 +1034,7 @@ resumeRadar/
 │   │   │   └── globals.css
 │   │   ├── components/
 │   │   │   ├── ui/                   # shadcn components
-│   │   │   ├── ResumeUpload.tsx      # Upload + paste resume
+│   │   │   ├── ResumeUpload.tsx      # Paste LaTeX resume
 │   │   │   ├── JDInput.tsx           # JD textarea
 │   │   │   ├── ScoreGauge.tsx        # Circular score gauge
 │   │   │   ├── RadarChart.tsx        # Skills radar chart
@@ -1200,11 +1128,11 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## Implementation Priority (Build Order)
 
 ### Phase 1: Core Engine (MVP)
-1. Backend: Resume parser (PDF/DOCX/TXT text extraction)
+1. Backend: Resume parser (LaTeX text extraction)
 2. Backend: JD parser (KeyBERT keyword extraction)
 3. Backend: Layer 1 — Keyword matching with variations + RapidFuzz
 4. Backend: Layer 3 — Structure/format scoring
-5. Frontend: Upload + paste UI, basic score display
+5. Frontend: LaTeX paste UI, basic score display
 6. API: `/analyze` endpoint with keyword + structure scores
 7. Frontend: Keyword analysis tab, structure check tab
 
@@ -1233,7 +1161,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 23. Backend: `latex_parser.py` — LaTeX section/bullet extractor with line number mapping
 24. Backend: `latex_assembler.py` — surgical `.tex` file reassembly from optimized blocks
 25. Backend: `implication_map.py` — skill implication dictionary (200+ mappings)
-26. Backend: `resume_optimizer.py` — optimization pipeline with LaTeX/plain text branching
+26. Backend: `resume_optimizer.py` — LaTeX optimization pipeline
 27. Backend: LaTeX-specific Gemini prompt (Prompt B) with LaTeX preservation rules
 28. Backend: `optimization_validator.py` — truthfulness guardrails + LaTeX syntax validation
 29. Backend: `/optimize` endpoint — runs analyze → optimize → validate → re-score loop
@@ -1242,7 +1170,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 32. Frontend: Accept/reject per-change checkboxes + "Apply Selected" merge logic
 33. Frontend: Score comparison animation (original → optimized)
 34. Frontend: Download `.tex` file + "Copy LaTeX" button (for LaTeX input)
-35. Frontend: Download `.txt` / `.md` fallback for non-LaTeX input
+35. Frontend: Download `.tex` file and "Copy LaTeX" button
 
 ---
 
@@ -1256,7 +1184,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ### Why Gemini (not OpenAI)?
 - Free tier with generous limits (15 RPM, 1M tokens/day for Flash)
-- Fast inference with `gemini-2.0-flash`
+- Fast inference with `gemini-2.5-flash`
 - Structured JSON output mode via response_schema
 - If user prefers OpenAI, the `llm_analyzer.py` should be designed with a provider abstraction so swapping is trivial
 
@@ -1277,7 +1205,6 @@ Based on Resume2Vec research (2025): matching entire documents loses granularity
 - Full analysis (all 3 layers + LLM): **< 8 seconds**
 - Analysis without LLM: **< 2 seconds**
 - **Auto-optimize (analyze + rewrite + validate + re-score): < 15 seconds**
-- PDF parsing: **< 500ms**
 - Keyword matching: **< 100ms**
 - Semantic scoring: **< 300ms**
 - Frontend initial load: **< 2 seconds**

@@ -6,7 +6,6 @@ import ResumeUpload from "@/components/ResumeUpload";
 import JDInput from "@/components/JDInput";
 import ScoreGauge from "@/components/ScoreGauge";
 import RadarChart from "@/components/RadarChart";
-import RecruiterView from "@/components/RecruiterView";
 import KeywordAnalysis from "@/components/KeywordAnalysis";
 import SemanticAnalysis from "@/components/SemanticAnalysis";
 import StructureCheck from "@/components/StructureCheck";
@@ -15,7 +14,6 @@ import AutoOptimize from "@/components/AutoOptimize";
 
 type TabId =
   | "overview"
-  | "recruiter"
   | "keywords"
   | "semantic"
   | "structure"
@@ -55,7 +53,6 @@ export default function Home() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Score Overview" },
-    { id: "recruiter", label: "Recruiter View" },
     { id: "keywords", label: "Keywords" },
     { id: "semantic", label: "Semantic" },
     { id: "structure", label: "Structure" },
@@ -331,10 +328,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              )}
-
-              {activeTab === "recruiter" && (
-                <RecruiterView analysis={analysis} />
               )}
 
               {activeTab === "keywords" && (
