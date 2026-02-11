@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import analyze, optimize, parse, history
-from app.models.database import init_db
+from app.routers import analyze, optimize
 
 app = FastAPI(
     title="ATS Score API",
@@ -22,13 +21,6 @@ app.add_middleware(
 
 app.include_router(analyze.router, prefix="/api/v1", tags=["analyze"])
 app.include_router(optimize.router, prefix="/api/v1", tags=["optimize"])
-app.include_router(parse.router, prefix="/api/v1", tags=["parse"])
-app.include_router(history.router, prefix="/api/v1", tags=["history"])
-
-
-@app.on_event("startup")
-async def startup():
-    init_db()
 
 
 @app.get("/api/v1/health")

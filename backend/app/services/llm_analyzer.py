@@ -1,8 +1,7 @@
-import json
-import re
 import logging
 from app.models.schemas import LLMAnalysis
 from app.config import get_settings
+from app.utils.llm_helpers import parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -49,23 +48,6 @@ Provide your analysis as JSON with these fields:
 Return ONLY the JSON object, no other text."""
 
 
-def _parse_llm_json(text: str) -> dict:
-    text = text.strip()
-    json_match = re.search(r"\{[\s\S]*\}", text)
-    if json_match:
-        try:
-            return json.loads(json_match.group())
-        except json.JSONDecodeError:
-            pass
-
-    text = re.sub(r"```json\s*", "", text)
-    text = re.sub(r"```\s*$", "", text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return {}
-
-
 async def analyze_with_llm(
     resume_text: str,
     jd_text: str,
@@ -93,7 +75,7 @@ async def analyze_with_llm(
         )
 
         response = model.generate_content(prompt)
-        result = _parse_llm_json(response.text)
+        result = parse_llm_json(response.text)
 
         if not result:
             logger.warning("Failed to parse LLM response")

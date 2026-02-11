@@ -49,34 +49,6 @@ class LatexResumeMap:
     about_section: LatexSection | None = None
 
 
-def latex_to_plain(latex: str) -> str:
-    text = latex
-    text = re.sub(r"%.*$", "", text, flags=re.MULTILINE)
-    text = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", text)
-    text = re.sub(r"\\myuline\s*\{([^}]*)\}", r"\1", text)
-    text = re.sub(r"\\textbf\{([^}]*)\}", r"\1", text)
-    text = re.sub(r"\\textit\{([^}]*)\}", r"\1", text)
-    text = re.sub(r"\\texttt\{([^}]*)\}", r"\1", text)
-    text = re.sub(r"\\resumeItem\{(.*?)\}", r"\1", text, flags=re.DOTALL)
-    text = re.sub(
-        r"\\resumeSubheading\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}",
-        r"\1 | \3 | \2 | \4", text,
-    )
-    text = re.sub(
-        r"\\resumeProjectHeading\{([^}]*)\}\{([^}]*)\}",
-        r"\1 | \2", text,
-    )
-    text = re.sub(r"\\section\{([^}]*)\}", r"\n\1\n", text)
-    text = re.sub(r"\\[a-zA-Z]+\*?\{[^}]*\}", "", text)
-    text = re.sub(r"\\[a-zA-Z]+\*?", "", text)
-    text = re.sub(r"\\begin\{[^}]*\}", "", text)
-    text = re.sub(r"\\end\{[^}]*\}", "", text)
-    text = re.sub(r"[{}$\\|]", "", text)
-    text = re.sub(r"\n\s*\n", "\n", text)
-    text = re.sub(r"  +", " ", text)
-    return text.strip()
-
-
 def parse_latex_resume(latex_source: str) -> LatexResumeMap:
     lines = latex_source.splitlines()
 

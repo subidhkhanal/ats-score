@@ -1,5 +1,3 @@
-import json
-import re
 import logging
 from app.models.schemas import (
     OptimizeResponse, ResumeChange, BulletChange,
@@ -9,10 +7,11 @@ from app.models.schemas import (
 from app.services.latex_parser import parse_latex_resume, LatexResumeMap
 from app.services.latex_assembler import assemble_optimized_latex
 from app.services.optimization_validator import (
-    validate_optimization, validate_latex_output, extract_skills_from_text,
+    validate_optimization, validate_latex_output,
 )
 from app.services.resume_parser import is_latex, latex_to_plain
 from app.config import get_settings
+from app.utils.llm_helpers import parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -141,22 +140,6 @@ RESPOND AS JSON:
 }}
 
 Return ONLY the JSON object."""
-
-
-def _parse_json(text: str) -> dict:
-    text = text.strip()
-    json_match = re.search(r"\{[\s\S]*\}", text)
-    if json_match:
-        try:
-            return json.loads(json_match.group())
-        except json.JSONDecodeError:
-            pass
-    text = re.sub(r"```json\s*", "", text)
-    text = re.sub(r"```\s*$", "", text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return {}
 
 
 async def optimize_resume(
@@ -429,7 +412,7 @@ async def _call_optimization_llm(
             )
 
         response = model.generate_content(prompt)
-        return _parse_json(response.text)
+        return parse_llm_json(response.text)
 
     except Exception as e:
         logger.error(f"Optimization LLM call failed: {e}")
